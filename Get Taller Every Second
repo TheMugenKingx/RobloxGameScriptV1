@@ -1,0 +1,182 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhoGodsyoure/Home/refs/heads/main/Neko.lua"))()
+local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhoGodsyoure/Home/refs/heads/main/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhoGodsyoure/Home/refs/heads/main/SaveManager.lua"))()
+
+local Window = Library:CreateWindow({
+    Title = "ArchiveXNova",
+    Footer = "Get Taller Every Second | YouTube: ArchiveXNova",
+    Icon = 85025739024001,
+    NotifySide = "Right",
+    ShowCustomCursor = true,
+    Center = true,
+    AutoShow = true,
+})
+
+local Tabs = {
+    Main = Window:AddTab("Main"),
+    ["UI Settings"] = Window:AddTab("Settings")
+}
+
+local Group = Tabs.Main:AddLeftGroupbox("Win")
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
+
+local TARGETS = {
+Vector3.new(-336.537, 401.292, 1244.426),
+}
+
+local index = 1
+local looping = false
+local antiAfkConn
+
+local delays = {
+    ["Normal"] = 0.4,
+    ["Fast"] = 0.2,
+    ["Super Fast"] = 0,
+    ["Normal Loop"] = 0.4,
+    ["Fast Loop"] = 0.15,
+    ["Safe Loop"] = 0.6,
+    ["Safe Mode (higher delay)"] = 0.8,
+    ["Light Mode"] = 0.5,
+    ["Normal Mode"] = 0.3,
+    ["AFK Mode"] = 0
+}
+
+local function getHRP()
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
+
+local function nextTarget()
+    local pos = TARGETS[index]
+    index += 1
+    if index > #TARGETS then
+        index = 1
+    end
+    return pos
+end
+
+local function teleport(delayTime)
+    local hrp = getHRP()
+    hrp.CFrame = CFrame.new(nextTarget())
+    if delayTime == 0 then
+        RunService.Heartbeat:Wait()
+    else
+        task.wait(delayTime)
+    end
+end
+
+local function startAntiAfk()
+    if antiAfkConn then return end
+    antiAfkConn = Player.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end
+
+local function stopAntiAfk()
+    if antiAfkConn then
+        antiAfkConn:Disconnect()
+        antiAfkConn = nil
+    end
+end
+
+local function startLoop(delayTime, duration)
+    looping = true
+    task.spawn(function()
+        local start = os.clock()
+        while looping do
+            teleport(delayTime)
+            if duration and os.clock() - start >= duration then
+                looping = false
+            end
+        end
+    end)
+end
+
+local function stopAll()
+    looping = false
+    index = 1
+    stopAntiAfk()
+end
+
+Group:AddDropdown("ModeDropdown", {
+    Values = {
+        "One-Time: Normal",
+        "One-Time: Fast",
+        "One-Time: Super Fast",
+
+        "Loop: Normal Loop",
+        "Loop: Fast Loop",
+        "Loop: Safe Loop",
+        "Stop Loop",
+
+        "Time Mode: Run for 30 seconds",
+        "Time Mode: Run for 1 minute",
+
+        "Stability: Safe Mode (higher delay)",
+
+        "Performance: Light Mode",
+        "Performance: Normal Mode",
+
+        "AFK / Farm: AFK Mode",
+
+        "Sistem: Stop All"
+    },
+    Default = 1,
+    Multi = false,
+    Text = "Mode",
+    Callback = function(Value)
+        stopAll()
+
+        if Value == "Stop Loop" or Value == "Sistem: Stop All" then
+            return
+        end
+
+        if Value:find("One%-Time") then
+            local mode = Value:match("One%-Time:%s(.+)")
+            teleport(delays[mode] or 0.3)
+            return
+        end
+
+        if Value:find("^Loop:") then
+            local mode = Value:match("Loop:%s(.+)")
+            startLoop(delays[mode] or 0.3)
+            return
+        end
+
+        if Value == "Time Mode: Run for 30 seconds" then
+            startLoop(0.3, 30)
+            return
+        end
+
+        if Value == "Time Mode: Run for 1 minute" then
+            startLoop(0.3, 60)
+            return
+        end
+
+        if Value:find("^AFK") then
+            startAntiAfk()
+            startLoop(delays["AFK Mode"])
+            return
+        end
+
+        if Value:find("Stability:") or Value:find("Performance:") then
+            local mode = Value:match(":%s(.+)")
+            startLoop(delays[mode] or 0.4)
+        end
+    end
+})
+
+local UIGroup = Tabs["UI Settings"]
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetFolder("ArchiveXNova")
+SaveManager:BuildConfigSection(Tabs["UI Settings"])
+ThemeManager:ApplyToTab(Tabs["UI Settings"])

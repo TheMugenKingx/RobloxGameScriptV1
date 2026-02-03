@@ -1,0 +1,44 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/WhoGodsyoure/MyHome/refs/heads/main/Made%20By%20Me%20Part%201%20Open%20And%20Close"))()
+
+local window = Library:CreateWindow({
+    Title = "Not Cute Anymore Tower"
+})
+
+local main = window:Section("Win + Money")
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local Points = {
+    Vector3.new(-470.661, 32.206, -173.838),
+    Vector3.new(-641.490, 365.495, -39.167),
+    Vector3.new(-548.219, 362.659, -53.695),
+}
+
+local Looping = false
+
+local function getHRP()
+    local char = player.Character or player.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
+
+main:Button("Start Loop Teleport", function()
+    if Looping then return end
+    Looping = true
+
+    task.spawn(function()
+        while Looping do
+            local hrp = getHRP()
+
+            for _, pos in ipairs(Points) do
+                if not Looping then break end
+                hrp.CFrame = CFrame.new(pos)
+                task.wait()
+            end
+        end
+    end)
+end)
+
+main:Button("Stop Loop Teleport", function()
+    Looping = false
+end)
